@@ -23,10 +23,17 @@ public class Parent {
 
     @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
-
+    @Column(name = "reset_code")
     private String resetCode;
+
+    @Column(name = "reset_code_expiration")
     private LocalDateTime resetCodeExpiration;
+
+    @Column(name = "reset_code_verified")
     private boolean resetCodeVerified;
+    //private String resetCode;
+   // private LocalDateTime resetCodeExpiration;
+    //private boolean resetCodeVerified;
 
     @Column(nullable = false)
     private String role; // Parent, Admin, Childreen
@@ -41,4 +48,29 @@ public class Parent {
     public String getEmail() { return email; }
     public String getPassword() { return password; }
     public String getRole() { return role; }
+
+
+    public String getResetCode() {
+        return resetCode;
+    }
+
+    public void setResetCode(String resetCode) {
+        this.resetCode = resetCode;
+    }
+
+    public LocalDateTime getResetCodeExpiration() {
+        return resetCodeExpiration;
+    }
+
+    public void setResetCodeExpiration(LocalDateTime resetCodeExpiration) {
+        this.resetCodeExpiration = resetCodeExpiration;
+    }
+
+    public boolean isResetCodeVerified() {
+        return resetCodeVerified;
+    }
+
+    public void setResetCodeVerified(boolean resetCodeVerified) {
+        this.resetCodeVerified = resetCodeVerified;
+    }
 }
