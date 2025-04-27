@@ -5,7 +5,7 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-src/main/resources/onyx-nexus-439900-t0-13dc2945f0ed.json
+onyx-nexus-439900-t0-13dc2945f0ed.json
 
 ### STS ###
 .apt_generated

@@ -59,6 +59,7 @@ public class GoogleDriveUploader {
     private static String uploadFile(java.io.File file, String mimeType) throws IOException, GeneralSecurityException {
         File fileMetadata = new File();
         fileMetadata.setName(file.getName());
+        fileMetadata.setParents(Collections.singletonList("1THkxc0ryrSJgNQazKF2SVb14ViXrxLx1"));
 
         FileContent mediaContent = new FileContent(mimeType, file);
 
