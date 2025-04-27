@@ -6,7 +6,7 @@ import com.example.demo.utils.GoogleDriveUploader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.util.List;
 @Service
 public class AdminContentService {
 
@@ -30,5 +30,9 @@ public class AdminContentService {
                 .build();
 
         return contentRepository.save(content);
+    }
+
+    public List<Content> getAllContent() {
+        return contentRepository.findAll();
     }
 }
