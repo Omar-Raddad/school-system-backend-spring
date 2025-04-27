@@ -26,7 +26,9 @@ public class JwtService {
     private static final long TOKEN_VALIDITY = 24 * 60 * 60 * 1000;
 
     public String generateToken(Parent parent) {
-        return generateToken(new HashMap<>(), parent);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("role", parent.getRole());
+        return generateToken(extraClaims, parent);
     }
 
     public String generateToken(
