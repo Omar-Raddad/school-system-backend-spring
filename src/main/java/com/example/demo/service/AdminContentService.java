@@ -35,4 +35,12 @@ public class AdminContentService {
     public List<Content> getAllContent() {
         return contentRepository.findAll();
     }
+
+    public void deleteContent(Integer id) {
+        if (!contentRepository.existsById(Long.valueOf(id))) {
+            throw new RuntimeException("Content not found with ID: " + id);
+        }
+        contentRepository.deleteById(Long.valueOf(id));
+    }
+
 }

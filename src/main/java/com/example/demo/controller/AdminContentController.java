@@ -36,4 +36,11 @@ public class AdminContentController {
         return ResponseEntity.ok(contents);
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteContent(@PathVariable Integer id) {
+        adminContentService.deleteContent(id);
+        return ResponseEntity.ok("Content deleted successfully");
+    }
+
+
 }
