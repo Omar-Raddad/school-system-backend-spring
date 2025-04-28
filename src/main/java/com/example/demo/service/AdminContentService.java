@@ -6,6 +6,8 @@ import com.example.demo.utils.GoogleDriveUploader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class AdminContentService {
@@ -31,4 +33,33 @@ public class AdminContentService {
 
         return contentRepository.save(content);
     }
+
+    public List<Content> getAllContent() {
+        return contentRepository.findAll();
+    }
+
+    public void deleteContent(Integer id) {
+        if (!contentRepository.existsById(Long.valueOf(id))) {
+            throw new RuntimeException("Content not found with ID: " + id);
+        }
+        contentRepository.deleteById(Long.valueOf(id));
+    }
+
+    public Content getContentById(Integer id) {
+        return contentRepository.findById(Long.valueOf(id))
+                .orElseThrow(() -> new NoSuchElementException("Content with ID " + id + " not found"));
+    }
+
+    public Content updateContent(Integer id, String title, String type, String subject) {
+        Content content = contentRepository.findById(Long.valueOf(id))
+                .orElseThrow(() -> new RuntimeException("Content with ID " + id + " not found"));
+
+        content.setTitle(title);
+        content.setType(type);
+        content.setSubject(subject);
+
+        return contentRepository.save(content);
+    }
+
+
 }

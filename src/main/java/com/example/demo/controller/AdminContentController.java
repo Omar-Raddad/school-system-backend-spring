@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/content")
@@ -28,4 +29,37 @@ public class AdminContentController {
         Content savedContent = adminContentService.uploadContent(file, title, type, subject);
         return ResponseEntity.ok(savedContent);
     }
+
+    @GetMapping
+    public ResponseEntity<List<Content>> getAllContent() {
+        List<Content> contents = adminContentService.getAllContent();
+        return ResponseEntity.ok(contents);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteContent(@PathVariable Integer id) {
+        adminContentService.deleteContent(id);
+        return ResponseEntity.ok("Content deleted successfully");
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Content> getContentById(@PathVariable Integer id) {
+        Content content = adminContentService.getContentById(id);
+        return ResponseEntity.ok(content);
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Content> updateContent(
+            @PathVariable Integer id,
+            @RequestParam String title,
+            @RequestParam String type,
+            @RequestParam String subject
+    ) {
+        Content updatedContent = adminContentService.updateContent(id, title, type, subject);
+        return ResponseEntity.ok(updatedContent);
+    }
+
+
+
+
 }
