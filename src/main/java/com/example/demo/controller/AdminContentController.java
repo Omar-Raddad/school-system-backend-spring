@@ -42,5 +42,12 @@ public class AdminContentController {
         return ResponseEntity.ok("Content deleted successfully");
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Content> getContentById(@PathVariable Integer id) {
+        Content content = adminContentService.getContentById(id);
+        return ResponseEntity.ok(content);
+    }
+
+
 
 }

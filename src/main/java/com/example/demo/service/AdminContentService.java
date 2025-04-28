@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.NoSuchElementException;
+
 @Service
 public class AdminContentService {
 
@@ -41,6 +43,11 @@ public class AdminContentService {
             throw new RuntimeException("Content not found with ID: " + id);
         }
         contentRepository.deleteById(Long.valueOf(id));
+    }
+
+    public Content getContentById(Integer id) {
+        return contentRepository.findById(Long.valueOf(id))
+                .orElseThrow(() -> new NoSuchElementException("Content with ID " + id + " not found"));
     }
 
 }
