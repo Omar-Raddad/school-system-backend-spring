@@ -48,6 +48,18 @@ public class AdminContentController {
         return ResponseEntity.ok(content);
     }
 
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Content> updateContent(
+            @PathVariable Integer id,
+            @RequestParam String title,
+            @RequestParam String type,
+            @RequestParam String subject
+    ) {
+        Content updatedContent = adminContentService.updateContent(id, title, type, subject);
+        return ResponseEntity.ok(updatedContent);
+    }
+
+
 
 
 }

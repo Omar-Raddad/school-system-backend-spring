@@ -50,4 +50,16 @@ public class AdminContentService {
                 .orElseThrow(() -> new NoSuchElementException("Content with ID " + id + " not found"));
     }
 
+    public Content updateContent(Integer id, String title, String type, String subject) {
+        Content content = contentRepository.findById(Long.valueOf(id))
+                .orElseThrow(() -> new RuntimeException("Content with ID " + id + " not found"));
+
+        content.setTitle(title);
+        content.setType(type);
+        content.setSubject(subject);
+
+        return contentRepository.save(content);
+    }
+
+
 }
