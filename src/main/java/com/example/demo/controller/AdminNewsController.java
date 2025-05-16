@@ -27,4 +27,20 @@ public class AdminNewsController {
     public ResponseEntity<?> getNews() {
         return ResponseEntity.ok(notificationService.getAllNews());
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> updateNews(@PathVariable Long id, @RequestBody NewsPostRequest request, Principal principal) {
+        notificationService.updateNews(id, request.getMessage(), principal.getName());
+        return ResponseEntity.ok("News updated.");
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> deleteNews(@PathVariable Long id, Principal principal) {
+        notificationService.deleteNews(id, principal.getName());
+        return ResponseEntity.ok("News deleted.");
+    }
+
+
 }
