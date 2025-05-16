@@ -17,9 +17,4 @@ public class ParentService {
         this.parentRepository = parentRepository;
     }
 
-
-    public int countChildren(Integer parentId) {
-        return parentRepository.getChildrenCount(parentId);
-    }
-
 }

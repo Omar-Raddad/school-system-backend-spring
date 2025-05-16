@@ -12,6 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
+import java.time.LocalDate;
+import java.util.UUID;
+import com.example.demo.dto.CreateCouponRequest;
+
 
 
 @Service
@@ -22,61 +26,65 @@ public class CouponService {
     private final ParentService parentService;
     private final CouponUsageRepository couponUsageRepository;
 
-    public Coupon generateCoupon(Integer parentId, String type) {
-        int childrenCount = parentService.countChildren(parentId);
-        System.out.println("Parent ID " + parentId + " has " + childrenCount + " child(ren)");
+    public Coupon createCouponByAdmin(CreateCouponRequest request) {
+        Coupon coupon = new Coupon();
 
-        Coupon coupon = Coupon.builder()
-                .code("SAVE" + new Random().nextInt(10000))
-                .discountType(type)
-                .discountValue(new Random().nextBoolean() ? 10 : 15)
-                .usageLimit(2)
-                .singleChildOnly(childrenCount == 1)
-                .createdAt(LocalDateTime.now())
-                .validDays(2)
-                .build();
+        coupon.setCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        coupon.setDiscountType(request.getType());
+        coupon.setDiscountValue((int) request.getDiscountValue());
+        coupon.setUsageLimit(request.getUsageLimit());
+        coupon.setSingleChildOnly(request.isSingleChildOnly());
+        coupon.setCreatedAt(LocalDate.now().atStartOfDay());
+        coupon.setValidDays(request.getValidDays());
 
         return couponRepository.save(coupon);
     }
 
-    public String useCoupon(Integer parentId, Integer couponId, String subscriptionType) {
-        Optional<Coupon> couponOpt = couponRepository.findById(couponId);
-        long usageCount = couponUsageRepository.countByUserIdAndCouponId(parentId, couponId);
-
-        if (couponOpt.isEmpty()) {
-            throw new RuntimeException("Coupon not found");
-        }
-
-        Coupon coupon = couponOpt.get();
+    public Coupon useCoupon(Integer parentId, Integer couponId, String subscriptionType) {
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new RuntimeException("Coupon not found"));
 
         if (!coupon.getDiscountType().equalsIgnoreCase(subscriptionType)) {
             throw new RuntimeException("Coupon type does not match subscription type");
         }
 
-        if (coupon.getSingleChildOnly() && parentService.countChildren(parentId) != 1) {
-            throw new RuntimeException("This coupon is only valid for parents with a single child");
+        if (!coupon.getCreatedAt().plusDays(coupon.getValidDays()).isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("Coupon expired");
         }
 
-        if (couponUsageRepository.findAll().stream().filter(u -> u.getCouponId().equals(couponId)).count() >= coupon.getUsageLimit()) {
-            throw new RuntimeException("Coupon usage limit reached");
+        boolean alreadyUsed = couponUsageRepository.existsByUserIdAndCouponId(parentId, couponId);
+        if (alreadyUsed) {
+            throw new RuntimeException("Coupon already used by this parent.");
         }
 
-//        boolean alreadyUsed = couponUsageRepository.existsByUserIdAndCouponId(parentId, couponId);
-//        if (alreadyUsed) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coupon already used by this parent");
-//        }
-
-        if (usageCount >= 2) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coupon usage limit exceeded");
-        }
-
-        CouponUsage usage = CouponUsage.builder()
+        couponUsageRepository.save(CouponUsage.builder()
                 .couponId(couponId)
                 .userId(parentId)
                 .usedAt(LocalDateTime.now())
-                .build();
+                .build());
 
-        couponUsageRepository.save(usage);
-        return "Coupon applied successfully";
+        return coupon;
     }
+
+    public Coupon validateCoupon(Integer couponId, String expectedType) {
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid coupon ID."));
+
+        if (!coupon.getDiscountType().equalsIgnoreCase(expectedType)) {
+            throw new IllegalArgumentException("Coupon type mismatch.");
+        }
+
+        long usageCount = couponUsageRepository.countByCouponId(couponId);
+        if (usageCount >= coupon.getUsageLimit()) {
+            throw new IllegalArgumentException("Coupon usage limit reached.");
+        }
+
+        LocalDateTime expiryDate = coupon.getCreatedAt().plusDays(coupon.getValidDays());
+        if (expiryDate.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Coupon expired.");
+        }
+
+        return coupon;
+    }
+
 }

@@ -2,7 +2,11 @@ package com.example.demo.repository;
 import com.example.demo.model.Child;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ChildRepository extends JpaRepository<Child, Long> {
-    long countByParentId(Integer parentId);
+import java.util.List;
 
+public interface ChildRepository extends JpaRepository<Child, Long> {
+
+    List<Child> findByParentId(Long id);
 }
+
+
