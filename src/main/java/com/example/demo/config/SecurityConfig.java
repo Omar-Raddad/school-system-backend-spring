@@ -30,6 +30,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_Admin")
                         .requestMatchers("/api/coupons/**").hasAuthority("ROLE_Admin")
+                        .requestMatchers("/api/news").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
