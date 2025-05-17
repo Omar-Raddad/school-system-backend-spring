@@ -1,48 +1,75 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.ContentItem;
+import com.example.demo.dto.GroupedContentResponse;
+import com.example.demo.dto.SubjectGroup;
+import com.example.demo.dto.ContentUpdateRequest;
 import com.example.demo.model.Content;
+import com.example.demo.model.Parent;
 import com.example.demo.repository.ContentRepository;
+import com.example.demo.repository.ParentRepository;
 import com.example.demo.utils.GoogleDriveUploader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.security.Principal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 public class AdminContentService {
 
     private final ContentRepository contentRepository;
+    private final ParentRepository parentRepository;
 
     @Autowired
-    public AdminContentService(ContentRepository contentRepository) {
+    public AdminContentService(ContentRepository contentRepository, ParentRepository parentRepository) {
         this.contentRepository = contentRepository;
+        this.parentRepository = parentRepository;
     }
 
-    public Content uploadContent(MultipartFile file, String title, String type, String subject) throws Exception {
-        // 1. Upload file to Google Drive
-        String driveUrl = GoogleDriveUploader.uploadFile(file);
+    public void uploadContent(String title, String type, String subject, String grade, String driveUrl, Principal principal) {
+        Parent uploader = parentRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
 
-        // 2. Save to database
-        Content content = Content.builder()
-                .title(title)
-                .type(type)
-                .subject(subject)
-                .driveUrl(driveUrl)
-                .build();
+        if (!"Admin".equals(uploader.getRole())) {
+            throw new AccessDeniedException("Only admins can upload content.");
+        }
 
-        return contentRepository.save(content);
+        Content content = new Content();
+        content.setTitle(title);
+        content.setType(type);
+        content.setSubject(subject);
+        content.setGrade(grade);
+        content.setDriveUrl(driveUrl);
+        content.setCreatedAt(LocalDateTime.now());
+        content.setUserId(uploader.getId());
+
+        contentRepository.save(content);
     }
 
     public List<Content> getAllContent() {
         return contentRepository.findAll();
     }
 
-    public void deleteContent(Integer id) {
-        if (!contentRepository.existsById(Long.valueOf(id))) {
-            throw new RuntimeException("Content not found with ID: " + id);
+    public void deleteContent(Long contentId, String adminEmail) {
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
+
+        Parent admin = parentRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        if (!content.getUserId().equals(admin.getId())) {
+            throw new AccessDeniedException("You can only delete content you uploaded.");
         }
-        contentRepository.deleteById(Long.valueOf(id));
+
+        contentRepository.delete(content);
     }
 
     public Content getContentById(Integer id) {
@@ -50,15 +77,48 @@ public class AdminContentService {
                 .orElseThrow(() -> new NoSuchElementException("Content with ID " + id + " not found"));
     }
 
-    public Content updateContent(Integer id, String title, String type, String subject) {
-        Content content = contentRepository.findById(Long.valueOf(id))
-                .orElseThrow(() -> new RuntimeException("Content with ID " + id + " not found"));
+    public void updateContent(Long contentId, ContentUpdateRequest request, String adminEmail) {
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
 
-        content.setTitle(title);
-        content.setType(type);
-        content.setSubject(subject);
+        Parent admin = parentRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
 
-        return contentRepository.save(content);
+        if (!content.getUserId().equals(admin.getId())) {
+            throw new AccessDeniedException("You can only update content you uploaded.");
+        }
+
+        content.setTitle(request.getTitle());
+        content.setType(request.getType());
+        content.setSubject(request.getSubject());
+        content.setGrade(request.getGrade());
+
+        contentRepository.save(content);
+    }
+
+    public List<GroupedContentResponse> getContentGroupedByGradeAndSubject() {
+        List<Content> all = contentRepository.findAll();
+
+        Map<String, Map<String, List<Content>>> grouped = all.stream()
+                .collect(Collectors.groupingBy(
+                        Content::getGrade,
+                        Collectors.groupingBy(Content::getSubject)
+                ));
+
+        List<GroupedContentResponse> result = new ArrayList<>();
+
+        for (Map.Entry<String, Map<String, List<Content>>> gradeEntry : grouped.entrySet()) {
+            List<SubjectGroup> subjectGroups = new ArrayList<>();
+            for (Map.Entry<String, List<Content>> subjectEntry : gradeEntry.getValue().entrySet()) {
+                List<ContentItem> items = subjectEntry.getValue().stream()
+                        .map(c -> new ContentItem(c.getId(), c.getTitle(), c.getType(), c.getDriveUrl(), c.getCreatedAt()))
+                        .toList();
+                subjectGroups.add(new SubjectGroup(subjectEntry.getKey(), items));
+            }
+            result.add(new GroupedContentResponse(gradeEntry.getKey(), subjectGroups));
+        }
+
+        return result;
     }
 
 

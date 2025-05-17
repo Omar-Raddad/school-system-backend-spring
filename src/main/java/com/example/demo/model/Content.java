@@ -18,6 +18,10 @@ public class Content {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String grade;
+
+    private Long userId;
+
     private String title;
 
     private String type;  // video, pdf, map, ppt

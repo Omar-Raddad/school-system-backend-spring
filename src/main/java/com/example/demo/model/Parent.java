@@ -36,7 +36,7 @@ public class Parent {
     //private boolean resetCodeVerified;
 
     @Column(nullable = false)
-    private String role; // Parent, Admin, Childreen
+    private String role; // Parent, Admin
 
     private String verificationCode;
     private LocalDateTime verificationCodeExpiration;

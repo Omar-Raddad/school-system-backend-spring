@@ -1,11 +1,18 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ContentUpdateRequest;
 import com.example.demo.model.Content;
 import com.example.demo.service.AdminContentService;
+import com.example.demo.utils.GoogleDriveUploader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -13,22 +20,32 @@ import java.util.List;
 public class AdminContentController {
 
     private final AdminContentService adminContentService;
+    private final GoogleDriveUploader driveUploader;
+    private final AdminContentService contentService;
+
 
     @Autowired
-    public AdminContentController(AdminContentService adminContentService) {
+    public AdminContentController(AdminContentService adminContentService, GoogleDriveUploader driveUploader, AdminContentService contentService) {
         this.adminContentService = adminContentService;
+        this.driveUploader = driveUploader;
+        this.contentService = contentService;
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<Content> uploadContent(
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> uploadContent(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
             @RequestParam("type") String type,
-            @RequestParam("subject") String subject
-    ) throws Exception {
-        Content savedContent = adminContentService.uploadContent(file, title, type, subject);
-        return ResponseEntity.ok(savedContent);
+            @RequestParam("subject") String subject,
+            @RequestParam("grade") String grade,
+            Principal principal
+    ) throws GeneralSecurityException, IOException {
+        String driveUrl = driveUploader.uploadFile(file);
+        adminContentService.uploadContent(title, type, subject, grade, driveUrl, principal);
+        return ResponseEntity.ok("Content uploaded successfully.");
     }
+
 
     @GetMapping
     public ResponseEntity<List<Content>> getAllContent() {
@@ -37,9 +54,13 @@ public class AdminContentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteContent(@PathVariable Integer id) {
-        adminContentService.deleteContent(id);
-        return ResponseEntity.ok("Content deleted successfully");
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> deleteContent(
+            @PathVariable Long id,
+            Principal principal
+    ) {
+        adminContentService.deleteContent(id, principal.getName());
+        return ResponseEntity.ok("Content deleted successfully.");
     }
 
     @GetMapping("/{id}")
@@ -49,17 +70,20 @@ public class AdminContentController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Content> updateContent(
-            @PathVariable Integer id,
-            @RequestParam String title,
-            @RequestParam String type,
-            @RequestParam String subject
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> updateContent(
+            @PathVariable Long id,
+            @RequestBody ContentUpdateRequest request,
+            Principal principal
     ) {
-        Content updatedContent = adminContentService.updateContent(id, title, type, subject);
-        return ResponseEntity.ok(updatedContent);
+        adminContentService.updateContent(id, request, principal.getName());
+        return ResponseEntity.ok("Content updated successfully.");
     }
 
 
-
-
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    @GetMapping("/by-grade")
+    public ResponseEntity<?> getAllContentForAdmin() {
+        return ResponseEntity.ok(contentService.getContentGroupedByGradeAndSubject());
+    }
 }
