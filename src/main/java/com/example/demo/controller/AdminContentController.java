@@ -20,12 +20,14 @@ public class AdminContentController {
 
     private final AdminContentService adminContentService;
     private final GoogleDriveUploader driveUploader;
+    private final AdminContentService contentService;
 
 
     @Autowired
-    public AdminContentController(AdminContentService adminContentService, GoogleDriveUploader driveUploader) {
+    public AdminContentController(AdminContentService adminContentService, GoogleDriveUploader driveUploader, AdminContentService contentService) {
         this.adminContentService = adminContentService;
         this.driveUploader = driveUploader;
+        this.contentService = contentService;
     }
 
     @PostMapping("/upload")
@@ -72,5 +74,13 @@ public class AdminContentController {
         Content updatedContent = adminContentService.updateContent(id, title, type, subject);
         return ResponseEntity.ok(updatedContent);
     }
+
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    @GetMapping("/by-grade")
+    public ResponseEntity<?> getAllContentForAdmin() {
+        return ResponseEntity.ok(contentService.getContentGroupedByGradeAndSubject());
+    }
+
+
 
 }
