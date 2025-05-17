@@ -62,6 +62,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
                 System.out.println("Role extracted from Parent: " + parent.getRole());
+                System.out.println("Authorities: " + userDetails.getAuthorities());
+
 
             }
         } catch (Exception e) {
