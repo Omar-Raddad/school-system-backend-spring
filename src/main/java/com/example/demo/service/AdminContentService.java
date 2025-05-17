@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.dto.ContentItem;
 import com.example.demo.dto.GroupedContentResponse;
 import com.example.demo.dto.SubjectGroup;
+import com.example.demo.dto.ContentUpdateRequest;
 import com.example.demo.model.Content;
 import com.example.demo.model.Parent;
 import com.example.demo.repository.ContentRepository;
@@ -53,16 +54,22 @@ public class AdminContentService {
         contentRepository.save(content);
     }
 
-
     public List<Content> getAllContent() {
         return contentRepository.findAll();
     }
 
-    public void deleteContent(Integer id) {
-        if (!contentRepository.existsById(Long.valueOf(id))) {
-            throw new RuntimeException("Content not found with ID: " + id);
+    public void deleteContent(Long contentId, String adminEmail) {
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
+
+        Parent admin = parentRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+
+        if (!content.getUserId().equals(admin.getId())) {
+            throw new AccessDeniedException("You can only delete content you uploaded.");
         }
-        contentRepository.deleteById(Long.valueOf(id));
+
+        contentRepository.delete(content);
     }
 
     public Content getContentById(Integer id) {
@@ -70,15 +77,23 @@ public class AdminContentService {
                 .orElseThrow(() -> new NoSuchElementException("Content with ID " + id + " not found"));
     }
 
-    public Content updateContent(Integer id, String title, String type, String subject) {
-        Content content = contentRepository.findById(Long.valueOf(id))
-                .orElseThrow(() -> new RuntimeException("Content with ID " + id + " not found"));
+    public void updateContent(Long contentId, ContentUpdateRequest request, String adminEmail) {
+        Content content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new RuntimeException("Content not found"));
 
-        content.setTitle(title);
-        content.setType(type);
-        content.setSubject(subject);
+        Parent admin = parentRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
 
-        return contentRepository.save(content);
+        if (!content.getUserId().equals(admin.getId())) {
+            throw new AccessDeniedException("You can only update content you uploaded.");
+        }
+
+        content.setTitle(request.getTitle());
+        content.setType(request.getType());
+        content.setSubject(request.getSubject());
+        content.setGrade(request.getGrade());
+
+        contentRepository.save(content);
     }
 
     public List<GroupedContentResponse> getContentGroupedByGradeAndSubject() {

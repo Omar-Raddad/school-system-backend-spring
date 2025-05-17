@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ContentUpdateRequest;
 import com.example.demo.model.Content;
 import com.example.demo.service.AdminContentService;
 import com.example.demo.utils.GoogleDriveUploader;
@@ -53,9 +54,13 @@ public class AdminContentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteContent(@PathVariable Integer id) {
-        adminContentService.deleteContent(id);
-        return ResponseEntity.ok("Content deleted successfully");
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> deleteContent(
+            @PathVariable Long id,
+            Principal principal
+    ) {
+        adminContentService.deleteContent(id, principal.getName());
+        return ResponseEntity.ok("Content deleted successfully.");
     }
 
     @GetMapping("/{id}")
@@ -65,22 +70,20 @@ public class AdminContentController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Content> updateContent(
-            @PathVariable Integer id,
-            @RequestParam String title,
-            @RequestParam String type,
-            @RequestParam String subject
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> updateContent(
+            @PathVariable Long id,
+            @RequestBody ContentUpdateRequest request,
+            Principal principal
     ) {
-        Content updatedContent = adminContentService.updateContent(id, title, type, subject);
-        return ResponseEntity.ok(updatedContent);
+        adminContentService.updateContent(id, request, principal.getName());
+        return ResponseEntity.ok("Content updated successfully.");
     }
+
 
     @PreAuthorize("hasAuthority('ROLE_Admin')")
     @GetMapping("/by-grade")
     public ResponseEntity<?> getAllContentForAdmin() {
         return ResponseEntity.ok(contentService.getContentGroupedByGradeAndSubject());
     }
-
-
-
 }
