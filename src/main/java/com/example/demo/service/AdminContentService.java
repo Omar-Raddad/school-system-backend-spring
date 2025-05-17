@@ -1,13 +1,14 @@
 package com.example.demo.service;
 
-import com.example.demo.dto.ContentItem;
-import com.example.demo.dto.GroupedContentResponse;
-import com.example.demo.dto.SubjectGroup;
-import com.example.demo.dto.ContentUpdateRequest;
+import com.example.demo.dto.*;
+import com.example.demo.exception.NoContentAvailableException;
+import com.example.demo.model.Child;
 import com.example.demo.model.Content;
 import com.example.demo.model.Parent;
+import com.example.demo.repository.ChildRepository;
 import com.example.demo.repository.ContentRepository;
 import com.example.demo.repository.ParentRepository;
+import com.example.demo.repository.SubscriptionRepository;
 import com.example.demo.utils.GoogleDriveUploader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -27,11 +28,15 @@ public class AdminContentService {
 
     private final ContentRepository contentRepository;
     private final ParentRepository parentRepository;
+    private final ChildRepository childRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     @Autowired
-    public AdminContentService(ContentRepository contentRepository, ParentRepository parentRepository) {
+    public AdminContentService(ContentRepository contentRepository, ParentRepository parentRepository, ChildRepository childRepository, SubscriptionRepository subscriptionRepository) {
         this.contentRepository = contentRepository;
         this.parentRepository = parentRepository;
+        this.childRepository = childRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     public void uploadContent(String title, String type, String subject, String grade, String driveUrl, Principal principal) {
@@ -119,6 +124,41 @@ public class AdminContentService {
         }
 
         return result;
+    }
+
+
+    public List<ChildContentResponse> getContentForParent(String parentEmail) {
+        Parent parent = parentRepository.findByEmail(parentEmail)
+                .orElseThrow(() -> new RuntimeException("Parent not found"));
+
+        List<Child> children = childRepository.findByParentId(parent.getId());
+        List<ChildContentResponse> result = new ArrayList<>();
+
+        for (Child child : children) {
+            boolean hasActiveSub = subscriptionRepository.existsByUserIdAndChildIdAndIsActiveTrue(
+                    parent.getId(), child.getId()
+            );
+
+            if (!hasActiveSub) continue;
+
+            List<Content> contentList = contentRepository.findByGrade(child.getGrade());
+
+            List<ContentItem> items = contentList.stream()
+                    .map(c -> new ContentItem(c.getId(), c.getTitle(), c.getType(), c.getDriveUrl(), c.getCreatedAt()))
+                    .toList();
+
+            result.add(new ChildContentResponse(
+                    child.getName(),
+                    child.getGrade(),
+                    items
+            ));
+        }
+
+        if (result.isEmpty()) {
+            throw new NoContentAvailableException("No content available. Please check your subscription.");
+        }
+        return result;
+
     }
 
 
