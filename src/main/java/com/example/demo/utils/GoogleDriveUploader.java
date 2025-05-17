@@ -8,6 +8,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileOutputStream;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 
+@Component
 public class GoogleDriveUploader {
 
     private static final String APPLICATION_NAME = "SandBag App";

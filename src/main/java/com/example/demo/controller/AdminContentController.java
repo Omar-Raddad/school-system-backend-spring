@@ -2,10 +2,16 @@ package com.example.demo.controller;
 
 import com.example.demo.model.Content;
 import com.example.demo.service.AdminContentService;
+import com.example.demo.utils.GoogleDriveUploader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -13,22 +19,30 @@ import java.util.List;
 public class AdminContentController {
 
     private final AdminContentService adminContentService;
+    private final GoogleDriveUploader driveUploader;
+
 
     @Autowired
-    public AdminContentController(AdminContentService adminContentService) {
+    public AdminContentController(AdminContentService adminContentService, GoogleDriveUploader driveUploader) {
         this.adminContentService = adminContentService;
+        this.driveUploader = driveUploader;
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<Content> uploadContent(
+    @PreAuthorize("hasAuthority('ROLE_Admin')")
+    public ResponseEntity<?> uploadContent(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
             @RequestParam("type") String type,
-            @RequestParam("subject") String subject
-    ) throws Exception {
-        Content savedContent = adminContentService.uploadContent(file, title, type, subject);
-        return ResponseEntity.ok(savedContent);
+            @RequestParam("subject") String subject,
+            @RequestParam("grade") String grade,
+            Principal principal
+    ) throws GeneralSecurityException, IOException {
+        String driveUrl = driveUploader.uploadFile(file);
+        adminContentService.uploadContent(title, type, subject, grade, driveUrl, principal);
+        return ResponseEntity.ok("Content uploaded successfully.");
     }
+
 
     @GetMapping
     public ResponseEntity<List<Content>> getAllContent() {
@@ -58,8 +72,5 @@ public class AdminContentController {
         Content updatedContent = adminContentService.updateContent(id, title, type, subject);
         return ResponseEntity.ok(updatedContent);
     }
-
-
-
 
 }

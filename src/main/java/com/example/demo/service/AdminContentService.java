@@ -1,11 +1,17 @@
 package com.example.demo.service;
 
 import com.example.demo.model.Content;
+import com.example.demo.model.Parent;
 import com.example.demo.repository.ContentRepository;
+import com.example.demo.repository.ParentRepository;
 import com.example.demo.utils.GoogleDriveUploader;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -13,26 +19,34 @@ import java.util.NoSuchElementException;
 public class AdminContentService {
 
     private final ContentRepository contentRepository;
+    private final ParentRepository parentRepository;
 
     @Autowired
-    public AdminContentService(ContentRepository contentRepository) {
+    public AdminContentService(ContentRepository contentRepository, ParentRepository parentRepository) {
         this.contentRepository = contentRepository;
+        this.parentRepository = parentRepository;
     }
 
-    public Content uploadContent(MultipartFile file, String title, String type, String subject) throws Exception {
-        // 1. Upload file to Google Drive
-        String driveUrl = GoogleDriveUploader.uploadFile(file);
+    public void uploadContent(String title, String type, String subject, String grade, String driveUrl, Principal principal) {
+        Parent uploader = parentRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
 
-        // 2. Save to database
-        Content content = Content.builder()
-                .title(title)
-                .type(type)
-                .subject(subject)
-                .driveUrl(driveUrl)
-                .build();
+        if (!"Admin".equals(uploader.getRole())) {
+            throw new AccessDeniedException("Only admins can upload content.");
+        }
 
-        return contentRepository.save(content);
+        Content content = new Content();
+        content.setTitle(title);
+        content.setType(type);
+        content.setSubject(subject);
+        content.setGrade(grade);
+        content.setDriveUrl(driveUrl);
+        content.setCreatedAt(LocalDateTime.now());
+        content.setUserId(uploader.getId());
+
+        contentRepository.save(content);
     }
+
 
     public List<Content> getAllContent() {
         return contentRepository.findAll();
